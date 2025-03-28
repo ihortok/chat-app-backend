@@ -28,6 +28,21 @@ get "/" do
   "Chat API is running!"
 end
 
+post "/login" do
+  data = JSON.parse(request.body.read)
+  user = User.find_or_create_by(email: data["email"]) do |u|
+    u.username = data["username"]
+  end
+
+  if user.persisted?
+    status 200
+    json user
+  else
+    status 422
+    json error: user.errors.full_messages
+  end
+end
+
 post "/users" do
   data = JSON.parse(request.body.read)
   user = User.create(username: data["username"], email: data["email"])
