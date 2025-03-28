@@ -1,0 +1,9 @@
+# config/database.yml
+development:
+  adapter: postgresql
+  encoding: unicode
+  database: chat_app_dev
+  pool: 5
+  username: <%= ENV["DB_USERNAME"] %>
+  password: <%= ENV["DB_PASSWORD"] %>
+  host: localhost
