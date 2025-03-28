@@ -4,6 +4,8 @@ require "json"
 require "dotenv/load"
 require "sinatra/json"
 require "sinatra/cross_origin"
+require "faye/websocket"
+require_relative "./websocket_manager"
 require_relative "./models/user"
 require_relative "./models/message"
 
@@ -14,6 +16,28 @@ end
 before do
   content_type :json
   response.headers["Access-Control-Allow-Origin"] = "*"
+end
+
+get "/ws" do
+  if Faye::WebSocket.websocket?(env)
+    ws = Faye::WebSocket.new(env)
+
+    ws.on :open do
+      WebSocketManager.instance.add(ws)
+      puts "WebSocket opened (#{WebSocketManager.instance.count} connections)"
+    end
+
+    ws.on :close do
+      WebSocketManager.instance.remove(ws)
+      puts "WebSocket closed (#{WebSocketManager.instance.count} remaining)"
+      ws = nil
+    end
+
+    ws.rack_response
+  else
+    status 400
+    body "WebSocket connection expected"
+  end
 end
 
 options "*" do
@@ -67,8 +91,21 @@ post "/messages" do
   if user
     message = user.messages.create(content: data["content"])
     if message.persisted?
+      # Broadcast to all connected clients
+      payload = {
+        id: message.id,
+        content: message.content,
+        user: {
+          id: user.id,
+          username: user.username
+        },
+        created_at: message.created_at
+      }
+
+      WebSocketManager.instance.broadcast(payload.to_json)
+
       status 201
-      json message
+      json payload
     else
       status 422
       json error: message.errors.full_messages
