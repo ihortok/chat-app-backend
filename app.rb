@@ -13,11 +13,11 @@ end
 
 before do
   content_type :json
+  response.headers["Access-Control-Allow-Origin"] = "*"
 end
 
 options "*" do
   response.headers["Allow"] = "GET, POST, OPTIONS"
-  response.headers["Access-Control-Allow-Origin"] = "*"
   response.headers["Access-Control-Allow-Headers"] = "Content-Type"
   200
 end
